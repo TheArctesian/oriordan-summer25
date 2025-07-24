@@ -168,10 +168,9 @@
 					</button>
 				</div>
 			</div>
-
-			{#if selectedEvent}
-				<div class="mt-4 rounded-lg bg-irish-stone-light p-3">
-					<h3 class="font-medium text-irish-navy">Event Details</h3>
+			<div class="mt-4 rounded-lg bg-irish-stone-light p-3">
+				<h3 class="font-medium text-irish-navy">Event Details</h3>
+				{#if selectedEvent}
 					{@const event = getEventById(selectedEvent)}
 					{#if event}
 						<p class="mt-1 text-sm">
@@ -183,10 +182,9 @@
 							{event.location}
 						</p>
 					{/if}
-				</div>
-			{/if}
+				{/if}
+			</div>
 		</div>
-
 		<!-- Quick links to events -->
 		<div class="mb-8">
 			<h2 class="mb-4 text-xl font-bold text-irish-navy">Quick Access to Events</h2>

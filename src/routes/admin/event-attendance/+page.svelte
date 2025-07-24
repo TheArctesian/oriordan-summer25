@@ -6,6 +6,7 @@
   let attendees = [];
   let loading = true;
   let selectedEvent = '';
+  let expandedEvents = new Set();
 
   onMount(async () => {
     try {
@@ -16,7 +17,7 @@
       ]);
       
       eventAttendance = attendanceResponse;
-      events = eventsResponse;
+      events = eventsResponse.sort((a, b) => new Date(a.date) - new Date(b.date));
       attendees = attendeesResponse;
       loading = false;
     } catch (error) {
@@ -25,18 +26,32 @@
     }
   });
 
-  $: filteredAttendance = selectedEvent 
-    ? eventAttendance.filter(ea => ea.eventId === parseInt(selectedEvent))
-    : eventAttendance;
+  $: eventsToShow = selectedEvent 
+    ? events.filter(e => e.id === parseInt(selectedEvent))
+    : events;
 
-  function getAttendeeName(attendeeId) {
-    const attendee = attendees.find(a => a.id === attendeeId);
-    return attendee ? `${attendee.firstName} ${attendee.lastName}` : 'Unknown';
+  function getAttendeesForEvent(eventId) {
+    return eventAttendance
+      .filter(record => record.eventId === eventId)
+      .map(record => {
+        const attendee = attendees.find(a => a.id === record.attendeeId);
+        return {
+          ...record,
+          attendeeName: attendee ? `${attendee.firstName} ${attendee.lastName}` : 'Unknown',
+          email: attendee?.email,
+          countryId: attendee?.countryId
+        };
+      })
+      .sort((a, b) => a.attendeeName.localeCompare(b.attendeeName));
   }
 
-  function getEventTitle(eventId) {
-    const event = events.find(e => e.id === eventId);
-    return event ? event.title : 'Unknown Event';
+  function toggleEvent(eventId) {
+    if (expandedEvents.has(eventId)) {
+      expandedEvents.delete(eventId);
+    } else {
+      expandedEvents.add(eventId);
+    }
+    expandedEvents = new Set(expandedEvents); // Force reactivity
   }
 </script>
 
@@ -68,19 +83,19 @@
     <div class="py-8 text-center">
       <p class="text-irish-navy-light">Loading attendance data...</p>
     </div>
-  {:else if eventAttendance.length === 0}
+  {:else if events.length === 0}
     <div class="bg-irish-stone-light rounded-lg py-8 text-center">
-      <p class="text-irish-navy">No event attendance records found.</p>
+      <p class="text-irish-navy">No events found.</p>
       <a
-        href="/admin/event-attendance/manage"
-        class="bg-irish-green hover:bg-irish-green-dark mt-4 inline-block rounded px-4 py-2 text-white transition-colors"
+        href="/admin/events/new"
+        class="bg-irish-orange hover:bg-irish-orange-dark mt-4 inline-block rounded px-4 py-2 text-white transition-colors"
       >
-        Manage Event Attendance
+        Create Your First Event
       </a>
     </div>
-  {:else if filteredAttendance.length === 0}
+  {:else if eventsToShow.length === 0}
     <div class="bg-irish-stone-light rounded-lg py-8 text-center">
-      <p class="text-irish-navy">No attendance records for this event.</p>
+      <p class="text-irish-navy">No matching events found.</p>
       <button
         on:click={() => selectedEvent = ''}
         class="bg-irish-navy hover:bg-irish-navy-light mt-4 inline-block rounded px-4 py-2 text-white transition-colors"
@@ -89,49 +104,121 @@
       </button>
     </div>
   {:else}
-    <div class="overflow-x-auto rounded-lg border border-irish-stone shadow">
-      <table class="min-w-full overflow-hidden bg-white">
-        <thead class="bg-irish-navy text-white">
-          <tr>
-            <th class="px-4 py-3 text-left">Event</th>
-            <th class="px-4 py-3 text-left">Attendee</th>
-            <th class="px-4 py-3 text-left">Status</th>
-            <th class="px-4 py-3 text-left">Actions</th>
-          </tr>
-        </thead>
-        <tbody class="divide-irish-stone divide-y">
-          {#each filteredAttendance as record}
-            <tr class="hover:bg-irish-stone-light">
-              <td class="px-4 py-3">{getEventTitle(record.eventId)}</td>
-              <td class="px-4 py-3">{getAttendeeName(record.attendeeId)}</td>
-              <td class="px-4 py-3">
-                <span
-                  class={`rounded-full px-2 py-1 text-xs ${
-                    record.status === 'Confirmed' ? 'bg-green-100 text-green-800' : 
-                    record.status === 'Maybe' ? 'bg-yellow-100 text-yellow-800' : 
-                    record.status === 'Declined' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}
-                >
-                  {record.status || 'Unknown'}
-                </span>
-              </td>
-              <td class="px-4 py-3">
-                <div class="flex space-x-2">
-                  <a
-                    href={`/admin/event-attendance/${record.id}/edit`}
-                    class="text-irish-navy hover:text-irish-orange">Edit</a
+    <div class="space-y-6">
+      {#each eventsToShow as event}
+        {@const attendeesForEvent = getAttendeesForEvent(event.id)}
+        {@const isExpanded = expandedEvents.has(event.id)}
+        
+        <div class="bg-white rounded-lg border border-irish-stone overflow-hidden shadow">
+          <!-- Event Header -->
+          <div 
+            class="bg-irish-navy text-white p-4 flex justify-between items-center cursor-pointer"
+            on:click={() => toggleEvent(event.id)}
+            on:keydown={(e) => e.key === 'Enter' && toggleEvent(event.id)}
+            tabindex="0"
+            role="button"
+            aria-expanded={isExpanded}
+          >
+            <div>
+              <h3 class="text-xl font-bold">{event.title}</h3>
+              <p class="text-sm opacity-80">
+                {new Date(event.date).toLocaleDateString()} | {event.startTime} - {event.endTime} | {event.location}
+              </p>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="bg-white text-irish-navy rounded-full px-3 py-1 text-sm font-bold">
+                {attendeesForEvent.length} Attendees
+              </span>
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                class="h-6 w-6 transform transition-transform duration-200 {isExpanded ? 'rotate-180' : ''}" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+          
+          <!-- Attendees List -->
+          {#if isExpanded}
+            <div class="p-4">
+              <div class="flex justify-between items-center mb-4">
+                <h4 class="text-lg font-semibold text-irish-navy">Attendees</h4>
+                <div class="flex gap-2">
+                  <a 
+                    href={`/admin/event-attendance/${event.id}/add`}
+                    class="bg-irish-green hover:bg-irish-green-dark text-white px-3 py-1 rounded text-sm"
                   >
-                  <button class="text-red-600 hover:text-red-800">Delete</button>
+                    Add Attendee
+                  </a>
+                  <button 
+                    class="bg-irish-orange hover:bg-irish-orange-dark text-white px-3 py-1 rounded text-sm"
+                  >
+                    Export List
+                  </button>
                 </div>
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
-    <div class="mt-4 text-sm text-gray-600">
-      Showing {filteredAttendance.length} of {eventAttendance.length} attendance records
+              </div>
+              
+              {#if attendeesForEvent.length === 0}
+                <div class="bg-irish-stone-light rounded p-4 text-center">
+                  <p class="text-irish-navy">No attendees registered for this event yet.</p>
+                </div>
+              {:else}
+                <div class="overflow-x-auto">
+                  <table class="min-w-full divide-y divide-irish-stone">
+                    <thead>
+                      <tr>
+                        <th class="px-4 py-2 text-left text-irish-navy">Name</th>
+                        <th class="px-4 py-2 text-left text-irish-navy">Email</th>
+                        <th class="px-4 py-2 text-left text-irish-navy">Country</th>
+                        <th class="px-4 py-2 text-left text-irish-navy">Status</th>
+                        <th class="px-4 py-2 text-left text-irish-navy">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-irish-stone">
+                      {#each attendeesForEvent as record}
+                        <tr class="hover:bg-irish-stone-light">
+                          <td class="px-4 py-2">{record.attendeeName}</td>
+                          <td class="px-4 py-2">{record.email || '-'}</td>
+                          <td class="px-4 py-2">{record.countryId || '-'}</td>
+                          <td class="px-4 py-2">
+                            <span
+                              class={`rounded-full px-2 py-1 text-xs ${
+                                record.status === 'Confirmed' ? 'bg-green-100 text-green-800' : 
+                                record.status === 'Maybe' ? 'bg-yellow-100 text-yellow-800' : 
+                                record.status === 'Declined' ? 'bg-red-100 text-red-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}
+                            >
+                              {record.status || 'Unknown'}
+                            </span>
+                          </td>
+                          <td class="px-4 py-2">
+                            <div class="flex space-x-2">
+                              <button 
+                                class="text-irish-navy hover:text-irish-green text-sm"
+                              >
+                                Edit
+                              </button>
+                              <button 
+                                class="text-red-600 hover:text-red-800 text-sm"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      {/each}
+                    </tbody>
+                  </table>
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {/each}
     </div>
   {/if}
 </div>

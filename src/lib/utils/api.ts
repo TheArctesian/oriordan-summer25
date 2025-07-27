@@ -63,8 +63,9 @@ export const api = {
 	},
 
 	async delete(endpoint: string, id: number): Promise<ApiResponse<void>> {
-		return apiRequest<void>(`${endpoint}/${id}`, {
-			method: 'DELETE'
+		return apiRequest<void>(endpoint, {
+			method: 'DELETE',
+			body: JSON.stringify({ id })
 		});
 	}
 };

@@ -1,32 +1,29 @@
 import { json } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { eventAttendance, attendees } from '$lib/server/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { events } from '$lib/server/db/schema';
+import { eq } from 'drizzle-orm';
 
 export async function GET({ params }) {
   try {
     const eventId = parseInt(params.id);
-
+    
     if (isNaN(eventId)) {
       return json({ error: 'Invalid event ID' }, { status: 400 });
     }
 
-    // Join eventAttendance with attendees to get full details
-    const attendeesList = await db
-      .select({
-        id: attendees.id,
-        firstName: attendees.firstName,
-        lastName: attendees.lastName,
-        countryId: attendees.countryId,
-        status: eventAttendance.status
-      })
-      .from(eventAttendance)
-      .innerJoin(attendees, eq(eventAttendance.attendeeId, attendees.id))
-      .where(eq(eventAttendance.eventId, eventId));
+    const event = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1);
 
-    return json(attendeesList);
+    if (event.length === 0) {
+      return json({ error: 'Event not found' }, { status: 404 });
+    }
+
+    return json(event[0]);
   } catch (error) {
-    console.error('Error fetching event attendees:', error);
-    return json({ error: 'Failed to fetch event attendees' }, { status: 500 });
+    console.error('Error fetching event:', error);
+    return json({ error: 'Failed to fetch event' }, { status: 500 });
   }
 }

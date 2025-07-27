@@ -7,12 +7,12 @@
 
 {#if $page.url.pathname.startsWith('/admin')}
 	<!-- Admin Layout -->
-	<div class="bg-irish-stone-light min-h-screen">
+	<div class="min-h-screen bg-irish-stone-light">
 		<div class="flex flex-col md:flex-row">
 			<!-- Sidebar for desktop -->
-			<aside class="bg-irish-navy w-full md:fixed md:min-h-screen md:w-64">
+			<aside class="w-full bg-irish-navy md:fixed md:min-h-screen md:w-64">
 				<div class="p-4 text-white">
-					<h2 class="text-irish-orange mb-6 text-2xl font-bold">Ireland Weekend</h2>
+					<h2 class="mb-6 text-2xl font-bold text-irish-orange">Ireland Weekend</h2>
 					<nav>
 						<ul class="space-y-2">
 							{#each [{ href: '/admin', label: 'Dashboard' }, { href: '/admin/attendees', label: 'Attendees' }, { href: '/admin/events', label: 'Events' }, { href: '/admin/accommodations', label: 'Accommodations' }, { href: '/admin/event-attendance', label: 'Event Attendance' }] as item}
@@ -43,19 +43,19 @@
 	</div>
 {:else}
 	<!-- Public Layout -->
-	<div class="bg-irish-stone-light min-h-screen">
+	<div class="min-h-screen bg-irish-stone-light">
 		<!-- Navbar -->
 		<nav class="bg-irish-navy p-4 text-white shadow-md">
 			<div class="container mx-auto flex items-center justify-between">
-				<a href="/" class="text-irish-orange text-xl font-bold">Ireland Weekend 2025</a>
+				<a href="/" class="text-xl font-bold text-irish-orange">Ireland Weekend 2025</a>
 				<div class="space-x-4">
-					<a href="/events" class="hover:text-irish-green transition-colors">Events</a>
-					<a href="/accommodations" class="hover:text-irish-green transition-colors"
+					<a href="/events" class="transition-colors hover:text-irish-green">Events</a>
+					<a href="/accommodations" class="transition-colors hover:text-irish-green"
 						>Accommodations</a
 					>
 					<a
 						href="/register"
-						class="bg-irish-orange hover:bg-irish-orange-dark rounded px-4 py-2 transition-colors"
+						class="rounded bg-irish-orange px-4 py-2 transition-colors hover:bg-irish-orange-dark"
 						>Register</a
 					>
 				</div>
@@ -68,32 +68,31 @@
 		</main>
 
 		<!-- Footer -->
-		<footer class="bg-irish-navy mt-12 p-6 text-white">
+		<footer class="mt-12 bg-irish-navy p-6 text-white">
 			<div class="container mx-auto">
 				<div class="grid grid-cols-1 gap-8 md:grid-cols-3">
 					<div>
-						<h3 class="text-irish-orange mb-4 text-lg font-bold">Ireland Weekend 2025</h3>
+						<h3 class="mb-4 text-lg font-bold text-irish-orange">Ireland Weekend 2025</h3>
 						<p>Join us for a special weekend in Ireland, celebrating with friends and family.</p>
 					</div>
 					<div>
-						<h3 class="text-irish-orange mb-4 text-lg font-bold">Quick Links</h3>
+						<h3 class="mb-4 text-lg font-bold text-irish-orange">Quick Links</h3>
 						<ul class="space-y-2">
-							<li><a href="/" class="hover:text-irish-green transition-colors">Home</a></li>
-							<li><a href="/events" class="hover:text-irish-green transition-colors">Events</a></li>
+							<li><a href="/" class="transition-colors hover:text-irish-green">Home</a></li>
+							<li><a href="/events" class="transition-colors hover:text-irish-green">Events</a></li>
 							<li>
-								<a href="/accommodations" class="hover:text-irish-green transition-colors"
+								<a href="/accommodations" class="transition-colors hover:text-irish-green"
 									>Accommodations</a
 								>
 							</li>
 							<li>
-								<a href="/register" class="hover:text-irish-green transition-colors">Register</a>
+								<a href="/register" class="transition-colors hover:text-irish-green">Register</a>
 							</li>
 						</ul>
 					</div>
 					<div>
-						<h3 class="text-irish-orange mb-4 text-lg font-bold">Contact</h3>
-						<p>For any queries about the weekend, please contact us:</p>
-						<p class="mt-2">Email: info@irelandweekend.com</p>
+						<h3 class="mb-4 text-lg font-bold text-irish-orange">Contact</h3>
+						<p>For any queries about the weekend, please contact Anne:</p>
 					</div>
 				</div>
 				<div class="mt-8 border-t border-gray-700 pt-6 text-center">

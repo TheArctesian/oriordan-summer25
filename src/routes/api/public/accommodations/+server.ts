@@ -8,7 +8,7 @@ export async function GET() {
     const publicAccommodations = await db
       .select()
       .from(accommodations)
-      .orderBy(accommodations.name);
+      .orderBy(accommodations.id);
 
     return json(publicAccommodations);
   } catch (error) {

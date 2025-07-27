@@ -85,23 +85,25 @@
 				<!-- Accommodation Details -->
 				<div class="md:col-span-2">
 					<div class="bg-white rounded-lg shadow p-6 mb-6">
-						<!-- Placeholder image -->
-						<div class="w-full h-64 bg-irish-stone-light flex items-center justify-center rounded-lg mb-6 irish-pattern">
-							<span class="text-irish-navy font-bold text-xl">{accommodation.name}</span>
-						</div>
+						<!-- Accommodation Image -->
+						{#if accommodation.notes}
+							<img 
+								src={accommodation.notes} 
+								alt={accommodation.name} 
+								class="w-full h-64 object-cover rounded-lg mb-6"
+							/>
+						{:else}
+							<div class="w-full h-64 bg-irish-stone-light flex items-center justify-center rounded-lg mb-6 irish-pattern">
+								<span class="text-irish-navy font-bold text-xl">{accommodation.name}</span>
+							</div>
+						{/if}
 						
 						<h2 class="text-2xl font-bold text-irish-navy mb-4">About This Accommodation</h2>
 						
-						{#if accommodation.notes}
-							<div class="prose max-w-none text-gray-700 mb-6">
-								<p class="whitespace-pre-line">{accommodation.notes}</p>
-							</div>
-						{:else}
-							<p class="text-gray-700 mb-6">
-								{accommodation.name} is one of our recommended accommodations for Ireland Weekend 2025. 
-								Perfect for attendees looking for a comfortable and convenient place to stay.
-							</p>
-						{/if}
+						<p class="text-gray-700 mb-6">
+							{accommodation.name} is one of our recommended accommodations for Ireland Weekend 2025. 
+							Perfect for attendees looking for a comfortable and convenient place to stay.
+						</p>
 						
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 							{#if accommodation.address}

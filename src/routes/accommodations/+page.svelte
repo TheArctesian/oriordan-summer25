@@ -71,10 +71,18 @@
 			<div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
 				{#each filteredAccommodations as accommodation}
 					<div class="overflow-hidden rounded-lg border border-irish-stone bg-white shadow-md transition-shadow hover:shadow-lg">
-						<!-- Accommodation Header -->
-						<div class="irish-pattern flex h-32 w-full items-center justify-center bg-irish-stone-light">
-							<span class="text-xl font-bold text-irish-navy">{accommodation.name}</span>
-						</div>
+						<!-- Accommodation Image -->
+						{#if accommodation.notes}
+							<img 
+								src={accommodation.notes} 
+								alt={accommodation.name} 
+								class="h-48 w-full object-cover"
+							/>
+						{:else}
+							<div class="irish-pattern flex h-32 w-full items-center justify-center bg-irish-stone-light">
+								<span class="text-xl font-bold text-irish-navy">{accommodation.name}</span>
+							</div>
+						{/if}
 
 						<!-- Accommodation Details -->
 						<div class="p-6">
@@ -88,16 +96,9 @@
 							{/if}
 
 							{#if accommodation.capacity}
-								<div class="mb-3">
+								<div class="mb-4">
 									<span class="font-medium text-irish-navy">👥 Capacity:</span>
 									<p class="mt-1 text-gray-700">{accommodation.capacity}</p>
-								</div>
-							{/if}
-
-							{#if accommodation.notes}
-								<div class="mb-4">
-									<span class="font-medium text-irish-navy">ℹ️ Additional Info:</span>
-									<p class="mt-1 text-gray-700">{accommodation.notes}</p>
 								</div>
 							{/if}
 

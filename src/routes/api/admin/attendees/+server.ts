@@ -38,3 +38,65 @@ export async function GET() {
     return json({ error: 'Failed to fetch attendees' }, { status: 500 });
   }
 }
+
+export async function POST({ request }) {
+  try {
+    const data = await request.json();
+
+    const result = await db.insert(attendees)
+      .values(data)
+      .returning();
+
+    return json(result[0]);
+  } catch (error) {
+    console.error('Error creating attendee:', error);
+    return json({ error: 'Failed to create attendee' }, { status: 500 });
+  }
+}
+
+export async function PUT({ request }) {
+  try {
+    const { id, ...data } = await request.json();
+
+    if (!id) {
+      return json({ error: 'Attendee ID is required' }, { status: 400 });
+    }
+
+    const result = await db.update(attendees)
+      .set(data)
+      .where(eq(attendees.id, id))
+      .returning();
+
+    if (result.length === 0) {
+      return json({ error: 'Attendee not found' }, { status: 404 });
+    }
+
+    return json(result[0]);
+  } catch (error) {
+    console.error('Error updating attendee:', error);
+    return json({ error: 'Failed to update attendee' }, { status: 500 });
+  }
+}
+
+export async function DELETE({ request }) {
+  try {
+    const { id } = await request.json();
+
+    if (!id) {
+      return json({ error: 'Attendee ID is required' }, { status: 400 });
+    }
+
+    const result = await db.delete(attendees)
+      .where(eq(attendees.id, id))
+      .returning();
+
+    if (result.length === 0) {
+      return json({ error: 'Attendee not found' }, { status: 404 });
+    }
+
+    return json({ message: 'Attendee deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting attendee:', error);
+    return json({ error: 'Failed to delete attendee' }, { status: 500 });
+  }
+}

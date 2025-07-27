@@ -5,8 +5,7 @@ import { eq, and } from 'drizzle-orm';
 
 export async function GET() {
   try {
-    const allEventAttendance = await db.select()
-      .from(eventAttendance);
+    const allEventAttendance = await db.select().from(eventAttendance);
 
     return json(allEventAttendance);
   } catch (error) {
@@ -20,17 +19,25 @@ export async function POST({ request }) {
     const { eventId, attendeeId, status } = await request.json();
 
     // Validate inputs
-    if (!eventId || !attendeeId || !status) {
-      return json({ error: 'Missing required fields' }, { status: 400 });
+    if ((!eventId && eventId != 0) || !attendeeId || !status) {
+      return json(
+        {
+          error: 'Missing required fields',
+          received: { eventId, attendeeId, status }
+        },
+        { status: 400 }
+      );
     }
 
     // Verify event and attendee exist
-    const eventExists = await db.select({ id: events.id })
+    const eventExists = await db
+      .select({ id: events.id })
       .from(events)
       .where(eq(events.id, eventId))
       .limit(1);
 
-    const attendeeExists = await db.select({ id: attendees.id })
+    const attendeeExists = await db
+      .select({ id: attendees.id })
       .from(attendees)
       .where(eq(attendees.id, attendeeId))
       .limit(1);
@@ -44,14 +51,10 @@ export async function POST({ request }) {
     }
 
     // Check if record already exists
-    const existingRecord = await db.select({ id: eventAttendance.id })
+    const existingRecord = await db
+      .select({ id: eventAttendance.id })
       .from(eventAttendance)
-      .where(
-        and(
-          eq(eventAttendance.eventId, eventId),
-          eq(eventAttendance.attendeeId, attendeeId)
-        )
-      )
+      .where(and(eq(eventAttendance.eventId, eventId), eq(eventAttendance.attendeeId, attendeeId)))
       .limit(1);
 
     if (existingRecord.length > 0) {
@@ -59,11 +62,12 @@ export async function POST({ request }) {
     }
 
     // Insert new record
-    const result = await db.insert(eventAttendance)
+    const result = await db
+      .insert(eventAttendance)
       .values({
-        eventId,
-        attendeeId,
-        status
+        attendeeId: attendeeId,
+        eventId: eventId,
+        status: status
       })
       .returning();
 
@@ -71,5 +75,51 @@ export async function POST({ request }) {
   } catch (error) {
     console.error('Error adding event attendance:', error);
     return json({ error: 'Failed to add event attendance' }, { status: 500 });
+  }
+}
+
+export async function PUT({ request }) {
+  try {
+    const { id, ...data } = await request.json();
+
+    if (!id) {
+      return json({ error: 'Event attendance ID is required' }, { status: 400 });
+    }
+
+    const result = await db
+      .update(eventAttendance)
+      .set(data)
+      .where(eq(eventAttendance.id, id))
+      .returning();
+
+    if (result.length === 0) {
+      return json({ error: 'Event attendance record not found' }, { status: 404 });
+    }
+
+    return json(result[0]);
+  } catch (error) {
+    console.error('Error updating event attendance:', error);
+    return json({ error: 'Failed to update event attendance' }, { status: 500 });
+  }
+}
+
+export async function DELETE({ request }) {
+  try {
+    const { id } = await request.json();
+
+    if (!id) {
+      return json({ error: 'Event attendance ID is required' }, { status: 400 });
+    }
+
+    const result = await db.delete(eventAttendance).where(eq(eventAttendance.id, id)).returning();
+
+    if (result.length === 0) {
+      return json({ error: 'Event attendance record not found' }, { status: 404 });
+    }
+
+    return json({ message: 'Event attendance deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting event attendance:', error);
+    return json({ error: 'Failed to delete event attendance' }, { status: 500 });
   }
 }

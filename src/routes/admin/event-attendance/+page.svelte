@@ -7,6 +7,7 @@
   let loading = true;
   let selectedEvent = '';
   let expandedEvents = new Set();
+  let deleting = null;
 
   onMount(async () => {
     try {
@@ -19,6 +20,13 @@
       eventAttendance = attendanceResponse;
       events = eventsResponse.sort((a, b) => new Date(a.date) - new Date(b.date));
       attendees = attendeesResponse;
+      
+      // Debug logging
+      console.log('Event attendance loaded:', attendanceResponse.length, 'records');
+      console.log('Sample attendance record:', attendanceResponse[0]);
+      console.log('Events loaded:', eventsResponse.length);
+      console.log('Attendees loaded:', attendeesResponse.length);
+      
       loading = false;
     } catch (error) {
       console.error('Failed to load data', error);
@@ -32,9 +40,15 @@
 
   function getAttendeesForEvent(eventId) {
     return eventAttendance
-      .filter(record => record.eventId === eventId)
+      .filter(record => {
+        // Handle both camelCase and snake_case field names
+        const recordEventId = record.eventId || record.event_id;
+        return recordEventId === eventId;
+      })
       .map(record => {
-        const attendee = attendees.find(a => a.id === record.attendeeId);
+        // Handle both camelCase and snake_case field names
+        const recordAttendeeId = record.attendeeId || record.attendee_id;
+        const attendee = attendees.find(a => a.id === recordAttendeeId);
         return {
           ...record,
           attendeeName: attendee ? `${attendee.firstName} ${attendee.lastName}` : 'Unknown',
@@ -45,6 +59,38 @@
       .sort((a, b) => a.attendeeName.localeCompare(b.attendeeName));
   }
 
+  function exportEventList(event) {
+    const attendeesForEvent = getAttendeesForEvent(event.id);
+    
+    if (attendeesForEvent.length === 0) {
+      alert('No attendees to export for this event.');
+      return;
+    }
+
+    // Create CSV content
+    const headers = ['Name', 'Email', 'Country', 'Status'];
+    const csvContent = [
+      headers.join(','),
+      ...attendeesForEvent.map(record => [
+        `"${record.attendeeName}"`,
+        `"${record.email || ''}"`,
+        `"${record.countryId || ''}"`,
+        `"${record.status}"`
+      ].join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${event.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_attendees_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   function toggleEvent(eventId) {
     if (expandedEvents.has(eventId)) {
       expandedEvents.delete(eventId);
@@ -52,6 +98,63 @@
       expandedEvents.add(eventId);
     }
     expandedEvents = new Set(expandedEvents); // Force reactivity
+  }
+
+  async function removeAttendance(attendanceId) {
+    if (!confirm('Are you sure you want to remove this attendance record?')) {
+      return;
+    }
+
+    deleting = attendanceId;
+
+    try {
+      const response = await fetch('/api/admin/event-attendance', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: attendanceId })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to remove attendance');
+      }
+
+      eventAttendance = eventAttendance.filter(ea => ea.id !== attendanceId);
+    } catch (error) {
+      console.error('Error removing attendance:', error);
+      alert('Failed to remove attendance: ' + error.message);
+    } finally {
+      deleting = null;
+    }
+  }
+
+  async function updateStatus(attendanceId, newStatus) {
+    try {
+      const response = await fetch('/api/admin/event-attendance', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: attendanceId, status: newStatus })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update status');
+      }
+
+      const updatedRecord = await response.json();
+      
+      // Update the local state
+      eventAttendance = eventAttendance.map(ea => 
+        ea.id === attendanceId ? { ...ea, status: newStatus } : ea
+      );
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Failed to update status: ' + error.message);
+    }
   }
 </script>
 
@@ -154,6 +257,7 @@
                     Add Attendee
                   </a>
                   <button 
+                    on:click={() => exportEventList(event)}
                     class="bg-irish-orange hover:bg-irish-orange-dark text-white px-3 py-1 rounded text-sm"
                   >
                     Export List
@@ -184,28 +288,24 @@
                           <td class="px-4 py-2">{record.email || '-'}</td>
                           <td class="px-4 py-2">{record.countryId || '-'}</td>
                           <td class="px-4 py-2">
-                            <span
-                              class={`rounded-full px-2 py-1 text-xs ${
-                                record.status === 'Confirmed' ? 'bg-green-100 text-green-800' : 
-                                record.status === 'Maybe' ? 'bg-yellow-100 text-yellow-800' : 
-                                record.status === 'Declined' ? 'bg-red-100 text-red-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}
+                            <select
+                              value={record.status}
+                              on:change={(e) => updateStatus(record.id, e.target.value)}
+                              class="rounded border border-gray-300 px-2 py-1 text-xs focus:border-irish-green focus:outline-none"
                             >
-                              {record.status || 'Unknown'}
-                            </span>
+                              <option value="Confirmed">Confirmed</option>
+                              <option value="Maybe">Maybe</option>
+                              <option value="Declined">Declined</option>
+                            </select>
                           </td>
                           <td class="px-4 py-2">
                             <div class="flex space-x-2">
                               <button 
-                                class="text-irish-navy hover:text-irish-green text-sm"
+                                on:click={() => removeAttendance(record.id)}
+                                disabled={deleting === record.id}
+                                class="text-red-600 hover:text-red-800 text-sm disabled:opacity-50"
                               >
-                                Edit
-                              </button>
-                              <button 
-                                class="text-red-600 hover:text-red-800 text-sm"
-                              >
-                                Remove
+                                {deleting === record.id ? 'Removing...' : 'Remove'}
                               </button>
                             </div>
                           </td>

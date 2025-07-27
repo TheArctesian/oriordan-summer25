@@ -1,121 +1,122 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { attendees, attendeesLoading, attendeesError, accommodations } from '$lib/stores/admin';
+	import { attendeesService, accommodationsService } from '$lib/services/adminService';
+	import Button from '$lib/components/ui/Button.svelte';
+	import Table from '$lib/components/ui/Table.svelte';
+	import Loading from '$lib/components/ui/Loading.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
+	import PageHeader from '$lib/components/ui/PageHeader.svelte';
+	import Alert from '$lib/components/ui/Alert.svelte';
 
-	let attendees = [];
-	let loading = true;
 	let searchTerm = '';
+	let deleting: number | null = null;
 
-	onMount(async () => {
-		try {
-			const response = await fetch('/api/admin/attendees');
-			attendees = await response.json();
-			loading = false;
-		} catch (error) {
-			console.error('Failed to load attendees', error);
-			loading = false;
-		}
+	onMount(() => {
+		attendeesService.loadAll();
+		accommodationsService.loadAll();
 	});
 
 	$: filteredAttendees = searchTerm
-		? attendees.filter(
+		? $attendees.filter(
 				(a) =>
 					`${a.firstName} ${a.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
 					(a.email && a.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
 					(a.countryId && a.countryId.toLowerCase().includes(searchTerm.toLowerCase()))
 			)
-		: attendees;
+		: $attendees;
+
+	function getAccommodationName(accommodationId: number | null): string {
+		if (!accommodationId) return 'Not assigned';
+		const accommodation = $accommodations.find(acc => acc.id === accommodationId);
+		return accommodation?.name || 'Unknown';
+	}
+
+	async function deleteAttendee(attendeeId: number) {
+		if (!confirm('Are you sure you want to delete this attendee?')) {
+			return;
+		}
+
+		deleting = attendeeId;
+		const response = await attendeesService.delete(attendeeId);
+
+		if (!response.success) {
+			alert('Failed to delete attendee: ' + response.error);
+		}
+
+		deleting = null;
+	}
 </script>
 
-<div>
-	<div class="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-		<h1 class="text-3xl font-bold text-irish-navy">Attendees</h1>
+<PageHeader title="Attendees">
+	<Button href="/admin/attendees/new" variant="primary">Add New Attendee</Button>
+</PageHeader>
 
-		<div class="flex flex-col gap-3 sm:flex-row">
-			<div class="relative">
-				<input
-					type="text"
-					bind:value={searchTerm}
-					placeholder="Search attendees..."
-					class="rounded-lg border border-irish-stone px-4 py-2 focus:outline-none focus:ring-2 focus:ring-irish-green"
-				/>
+{#if $attendeesError}
+	<Alert type="error" dismissible>{$attendeesError}</Alert>
+{/if}
+
+{#if $attendeesLoading}
+	<Loading message="Loading attendees..." />
+{:else if $attendees.length === 0}
+	<EmptyState
+		title="No attendees found"
+		description="Get started by adding your first attendee."
+		actionText="Add Your First Attendee"
+		actionHref="/admin/attendees/new"
+	/>
+{:else}
+	<Table
+		headers={['Name', 'Email', 'Country', 'Accommodation', 'Status', 'Actions']}
+		searchable={true}
+		searchPlaceholder="Search attendees..."
+		bind:searchValue={searchTerm}
+	>
+		<div slot="header">
+			<div class="text-sm text-gray-600">
+				Showing {filteredAttendees.length} of {$attendees.length} attendees
 			</div>
+		</div>
 
-			<a
-				href="/admin/attendees/new"
-				class="whitespace-nowrap rounded bg-irish-green px-4 py-2 text-white transition-colors hover:bg-irish-green-dark"
-			>
-				Add New Attendee
-			</a>
-		</div>
-	</div>
-
-	{#if loading}
-		<div class="py-8 text-center">
-			<p class="text-irish-navy-light">Loading attendees...</p>
-		</div>
-	{:else if attendees.length === 0}
-		<div class="rounded-lg bg-irish-stone-light py-8 text-center">
-			<p class="text-irish-navy">No attendees found.</p>
-			<a
-				href="/admin/attendees/new"
-				class="mt-4 inline-block rounded bg-irish-green px-4 py-2 text-white transition-colors hover:bg-irish-green-dark"
-			>
-				Add Your First Attendee
-			</a>
-		</div>
-	{:else if filteredAttendees.length === 0}
-		<div class="rounded-lg bg-irish-stone-light py-8 text-center">
-			<p class="text-irish-navy">No attendees match your search.</p>
-			<button
-				on:click={() => (searchTerm = '')}
-				class="mt-4 inline-block rounded bg-irish-navy px-4 py-2 text-white transition-colors hover:bg-irish-navy-light"
-			>
-				Clear Search
-			</button>
-		</div>
-	{:else}
-		<div class="overflow-x-auto rounded-lg border border-irish-stone shadow">
-			<table class="min-w-full overflow-hidden bg-white">
-				<thead class="bg-irish-navy text-white">
-					<tr>
-						<th class="px-4 py-3 text-left">Name</th>
-						<th class="px-4 py-3 text-left">Email</th>
-						<th class="px-4 py-3 text-left">Country</th>
-						<th class="px-4 py-3 text-left">Accommodation</th>
-						<th class="px-4 py-3 text-left">Status</th>
-						<th class="px-4 py-3 text-left">Actions</th>
-					</tr>
-				</thead>
-				<tbody class="divide-y divide-irish-stone">
-					{#each filteredAttendees as attendee}
-						<tr class="hover:bg-irish-stone-light">
-							<td class="px-4 py-3">{attendee.firstName} {attendee.lastName}</td>
-							<td class="px-4 py-3">{attendee.email || '-'}</td>
-							<td class="px-4 py-3">{attendee.countryId || '-'}</td>
-							<td class="px-4 py-3">{attendee.accommodationName || 'Not assigned'}</td>
-							<td class="px-4 py-3">
-								<span
-									class={`rounded-full px-2 py-1 text-xs ${attendee.isConfirmed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}
-								>
-									{attendee.isConfirmed ? 'Confirmed' : 'Pending'}
-								</span>
-							</td>
-							<td class="px-4 py-3">
-								<div class="flex space-x-2">
-									<a
-										href={`/admin/attendees/${attendee.id}/edit`}
-										class="text-irish-navy hover:text-irish-green">Edit</a
-									>
-									<button class="text-red-600 hover:text-red-800">Delete</button>
-								</div>
-							</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
-		<div class="mt-4 text-sm text-gray-600">
-			Showing {filteredAttendees.length} of {attendees.length} attendees
-		</div>
-	{/if}
-</div>
+		{#if filteredAttendees.length === 0}
+			<tr>
+				<td colspan="6" class="px-4 py-8 text-center">
+					<EmptyState title="No attendees match your search" actionText="Clear Search">
+						<Button on:click={() => (searchTerm = '')} variant="secondary">Clear Search</Button>
+					</EmptyState>
+				</td>
+			</tr>
+		{:else}
+			{#each filteredAttendees as attendee}
+				<tr class="hover:bg-irish-stone-light">
+					<td class="px-4 py-3">{attendee.firstName} {attendee.lastName}</td>
+					<td class="px-4 py-3">{attendee.email || '-'}</td>
+					<td class="px-4 py-3">{attendee.countryId || '-'}</td>
+					<td class="px-4 py-3">{getAccommodationName(attendee.accommodationId)}</td>
+					<td class="px-4 py-3">
+						<span
+							class={`rounded-full px-2 py-1 text-xs ${attendee.isConfirmed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}
+						>
+							{attendee.isConfirmed ? 'Confirmed' : 'Pending'}
+						</span>
+					</td>
+					<td class="px-4 py-3">
+						<div class="flex space-x-2">
+							<Button href={`/admin/attendees/${attendee.id}/edit`} variant="secondary" size="sm">
+								Edit
+							</Button>
+							<Button
+								on:click={() => deleteAttendee(attendee.id)}
+								disabled={deleting === attendee.id}
+								variant="danger"
+								size="sm"
+							>
+								{deleting === attendee.id ? 'Deleting...' : 'Delete'}
+							</Button>
+						</div>
+					</td>
+				</tr>
+			{/each}
+		{/if}
+	</Table>
+{/if}

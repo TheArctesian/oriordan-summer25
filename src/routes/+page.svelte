@@ -206,6 +206,10 @@
 									type="text"
 									bind:value={userName}
 									on:input={() => {
+										// Clear user selection if text is changed after selection
+										if (selectedUser) {
+											clearUserSelection();
+										}
 										generateNameSuggestions();
 										clearTimeout(searchTimeout);
 										searchTimeout = setTimeout(searchUsers, 300);

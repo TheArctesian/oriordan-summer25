@@ -103,13 +103,6 @@
                   </button>
                 </div>
               </div>
-            {:else if !isAdminRoute}
-              <a 
-                href="/register" 
-                class="bg-irish-orange hover:bg-irish-orange-dark text-white px-4 py-2 rounded-lg transition-colors"
-              >
-                Register to Attend
-              </a>
             {/if}
           </div>
         </div>
@@ -261,16 +254,6 @@
               </div>
             {/if}
             
-            {#if !currentUser && !isAdminRoute}
-              <div class="mt-6 pt-4 border-t border-irish-stone">
-                <a 
-                  href="/register" 
-                  class="bg-irish-orange hover:bg-irish-orange-dark text-white px-4 py-2 rounded-lg transition-colors block text-center"
-                >
-                  Join This Event
-                </a>
-              </div>
-            {/if}
           </div>
         </div>
       </div>

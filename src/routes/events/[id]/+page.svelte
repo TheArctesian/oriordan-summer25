@@ -8,6 +8,9 @@
   let error = null;
   let currentUser = null; // This would come from your auth system
   let userStatus = null;
+  
+  // Check if current route is admin
+  $: isAdminRoute = $page.url.pathname.startsWith('/admin');
 
   onMount(async () => {
     try {
@@ -100,7 +103,7 @@
                   </button>
                 </div>
               </div>
-            {:else}
+            {:else if !isAdminRoute}
               <a 
                 href="/register" 
                 class="bg-irish-orange hover:bg-irish-orange-dark text-white px-4 py-2 rounded-lg transition-colors"
@@ -258,7 +261,7 @@
               </div>
             {/if}
             
-            {#if !currentUser}
+            {#if !currentUser && !isAdminRoute}
               <div class="mt-6 pt-4 border-t border-irish-stone">
                 <a 
                   href="/register" 

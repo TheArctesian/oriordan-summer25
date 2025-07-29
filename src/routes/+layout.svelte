@@ -53,11 +53,6 @@
 					<a href="/accommodations" class="transition-colors hover:text-irish-green"
 						>Accommodations</a
 					>
-					<a
-						href="/register"
-						class="rounded bg-irish-orange px-4 py-2 transition-colors hover:bg-irish-orange-dark"
-						>Register</a
-					>
 				</div>
 			</div>
 		</nav>
@@ -84,9 +79,6 @@
 								<a href="/accommodations" class="transition-colors hover:text-irish-green"
 									>Accommodations</a
 								>
-							</li>
-							<li>
-								<a href="/register" class="transition-colors hover:text-irish-green">Register</a>
 							</li>
 						</ul>
 					</div>

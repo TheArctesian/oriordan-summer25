@@ -66,6 +66,13 @@
 
 	// Generate name suggestions based on input
 	function generateNameSuggestions() {
+		console.log(
+			'generateNameSuggestions called, userName:',
+			userName,
+			'allAttendeeNames:',
+			allAttendeeNames.length
+		);
+
 		if (userName.trim().length < 2) {
 			nameSuggestions = [];
 			showSuggestions = false;
@@ -97,8 +104,11 @@
 			})
 			.slice(0, 5); // Limit to 5 suggestions
 
+		console.log('suggestions found:', suggestions.length, suggestions);
+		console.log('selectedUser:', selectedUser, 'showUserDropdown:', showUserDropdown);
 		nameSuggestions = suggestions;
 		showSuggestions = suggestions.length > 0 && !selectedUser;
+		console.log('showSuggestions:', showSuggestions);
 	}
 
 	// Simple fuzzy matching for typos
@@ -130,7 +140,9 @@
 		showSuggestions = false;
 
 		// Create a set of event IDs this user is registered for (ensure consistent data types)
+		console.log('User events:', user.events);
 		userEvents = new Set(user.events.map((e) => Number(e.eventId)));
+		console.log('User event IDs:', userEvents);
 	}
 
 	// Clear user selection
@@ -154,7 +166,12 @@
 	// Check if user is registered for an event
 	function isUserRegistered(eventId) {
 		const numericEventId = Number(eventId);
-		return userEvents.has(numericEventId);
+		const isRegistered = userEvents.has(numericEventId);
+		console.log(
+			`Event ${eventId} (${typeof eventId}) -> ${numericEventId} (${typeof numericEventId}): registered = ${isRegistered}`,
+			userEvents
+		);
+		return isRegistered;
 	}
 
 	// Get user's status for an event
@@ -217,28 +234,13 @@
 									</div>
 								{/if}
 
-
-								<!-- Name Suggestions Dropdown -->
-								{#if showSuggestions && nameSuggestions.length > 0}
-									<div
-										class="absolute top-full right-0 left-0 z-50 mt-1 max-h-40 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-xl"
-									>
-										<div
-											class="border-b border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500"
-										>
-											Did you mean:
-										</div>
-										{#each nameSuggestions as suggestion}
-											<button
-												type="button"
-												on:click={() => selectSuggestion(suggestion)}
-												class="w-full border-b border-gray-100 px-3 py-2 text-left text-sm text-irish-navy transition-colors last:border-b-0 hover:bg-irish-green hover:text-white"
-											>
-												{suggestion.fullName}
-											</button>
-										{/each}
+								<!-- Debug: Show suggestion state 
+								{#if userName.length >= 2}
+									<div class="absolute top-full left-0 rounded bg-red-500 p-1 text-xs text-white">
+										Debug: {nameSuggestions.length} suggestions, showSuggestions: {showSuggestions}
 									</div>
 								{/if}
+                                -->
 
 								<!-- User Search Dropdown -->
 								{#if showUserDropdown && userSearchResults.length > 0}
@@ -335,10 +337,10 @@
 							{@const userStatus = getUserEventStatus(event.id)}
 							<div
 								class={`overflow-hidden rounded-lg border shadow-md transition-all hover:shadow-lg ${
-									selectedUser && isRegistered
-										? 'ring-opacity-30 border-irish-green bg-white ring-2 ring-irish-green'
-										: selectedUser && !isRegistered
-											? 'border-gray-300 bg-gray-50 opacity-50'
+									selectedUser && !isRegistered
+										? 'border-gray-300 bg-gray-50 opacity-50'
+										: selectedUser && isRegistered
+											? 'ring-opacity-30 border-irish-green bg-white ring-2 ring-irish-green'
 											: 'border-irish-stone bg-white hover:border-irish-green'
 								}`}
 							>

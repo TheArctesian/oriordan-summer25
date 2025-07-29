@@ -6,6 +6,9 @@
 	let attendees = [];
 	let loading = true;
 	let error = null;
+	
+	// Check if current route is admin
+	$: isAdminRoute = $page.url.pathname.startsWith('/admin');
 
 	onMount(async () => {
 		try {
@@ -69,12 +72,14 @@
 								View on Map
 							</a>
 						{/if}
-						<a 
-							href="/register" 
-							class="bg-irish-green hover:bg-irish-green-dark text-white px-4 py-2 rounded-lg transition-colors"
-						>
-							Register to Stay
-						</a>
+						{#if !isAdminRoute}
+							<a 
+								href="/register" 
+								class="bg-irish-green hover:bg-irish-green-dark text-white px-4 py-2 rounded-lg transition-colors"
+							>
+								Register to Stay
+							</a>
+						{/if}
 					</div>
 				</div>
 			</div>
@@ -177,14 +182,16 @@
 							</div>
 						{/if}
 						
-						<div class="mt-6 pt-4 border-t border-irish-stone">
-							<a 
-								href="/register" 
-								class="bg-irish-orange hover:bg-irish-orange-dark text-white px-4 py-2 rounded-lg transition-colors block text-center"
-							>
-								Register to Stay Here
-							</a>
-						</div>
+						{#if !isAdminRoute}
+							<div class="mt-6 pt-4 border-t border-irish-stone">
+								<a 
+									href="/register" 
+									class="bg-irish-orange hover:bg-irish-orange-dark text-white px-4 py-2 rounded-lg transition-colors block text-center"
+								>
+									Register to Stay Here
+								</a>
+							</div>
+						{/if}
 					</div>
 				</div>
 			</div>

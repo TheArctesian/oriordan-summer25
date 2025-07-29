@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { attendees, eventAttendance, events } from '$lib/server/db/schema';
-import { eq, and, like, or } from 'drizzle-orm';
+import { eq, and, like, or, sql } from 'drizzle-orm';
 
 export async function GET({ url }) {
   try {
@@ -13,7 +13,7 @@ export async function GET({ url }) {
 
     const searchTerm = name.trim().toLowerCase();
 
-    // Find attendees matching the name
+    // Find attendees matching the name (case-insensitive)
     const matchingAttendees = await db
       .select({
         id: attendees.id,
@@ -24,8 +24,9 @@ export async function GET({ url }) {
       .from(attendees)
       .where(
         or(
-          like(attendees.firstName, `%${searchTerm}%`),
-          like(attendees.lastName, `%${searchTerm}%`)
+          sql`LOWER(${attendees.firstName}) LIKE ${`%${searchTerm}%`}`,
+          sql`LOWER(${attendees.lastName}) LIKE ${`%${searchTerm}%`}`,
+          sql`LOWER(CONCAT(${attendees.firstName}, ' ', ${attendees.lastName})) LIKE ${`%${searchTerm}%`}`
         )
       )
       .limit(10); // Limit results to prevent too many matches

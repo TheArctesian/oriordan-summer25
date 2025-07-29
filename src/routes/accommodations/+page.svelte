@@ -38,7 +38,7 @@
 					type="text"
 					bind:value={searchTerm}
 					placeholder="Search accommodations..."
-					class="w-full rounded-lg border border-irish-stone px-4 py-2 text-irish-navy focus:outline-none focus:ring-2 focus:ring-irish-green"
+					class="w-full rounded-lg border-2 border-white bg-white px-4 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-irish-green focus:border-irish-green"
 				/>
 			</div>
 		</div>

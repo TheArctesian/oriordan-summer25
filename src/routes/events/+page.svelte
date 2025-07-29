@@ -3,9 +3,7 @@
 
 	let events = [];
 	let loading = true;
-	let searchTerm = '';
-	let selectedDate = '';
-	
+
 	// User filtering
 	let userName = '';
 	let selectedUser = null;
@@ -13,29 +11,29 @@
 	let userSearchResults = [];
 	let userSearchLoading = false;
 	let showUserDropdown = false;
+	let allAttendeeNames = [];
+	let nameSuggestions = [];
+	let showSuggestions = false;
 
 	onMount(async () => {
 		try {
-			const response = await fetch('/api/public/events');
-			events = await response.json();
+			const [eventsResponse, namesResponse] = await Promise.all([
+				fetch('/api/public/events'),
+				fetch('/api/public/attendees/names')
+			]);
+
+			events = await eventsResponse.json();
+			const namesData = await namesResponse.json();
+			allAttendeeNames = namesData.names || [];
+
 			loading = false;
 		} catch (error) {
-			console.error('Failed to load events', error);
+			console.error('Failed to load data', error);
 			loading = false;
 		}
 	});
 
-	// Get unique dates for filter
-	$: uniqueDates = [...new Set(events.map((event) => event.date))].sort();
-
-	$: filteredEvents = events.filter(
-		(event) =>
-			(!searchTerm ||
-				event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-				(event.description && event.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-				(event.location && event.location.toLowerCase().includes(searchTerm.toLowerCase()))) &&
-			(!selectedDate || event.date === selectedDate)
-	);
+	$: filteredEvents = events;
 
 	// Search for users
 	async function searchUsers() {
@@ -46,11 +44,13 @@
 		}
 
 		userSearchLoading = true;
-		
+
 		try {
-			const response = await fetch(`/api/public/attendees/search?name=${encodeURIComponent(userName)}`);
+			const response = await fetch(
+				`/api/public/attendees/search?name=${encodeURIComponent(userName)}`
+			);
 			const data = await response.json();
-			
+
 			if (data.attendees) {
 				userSearchResults = data.attendees;
 				showUserDropdown = userSearchResults.length > 0;
@@ -64,14 +64,73 @@
 		}
 	}
 
+	// Generate name suggestions based on input
+	function generateNameSuggestions() {
+		if (userName.trim().length < 2) {
+			nameSuggestions = [];
+			showSuggestions = false;
+			return;
+		}
+
+		const searchTerm = userName.trim().toLowerCase();
+
+		// Find names that are similar to the input
+		const suggestions = allAttendeeNames
+			.filter((person) => {
+				// Handle null/undefined values
+				const fullName = (person.fullName || '').toLowerCase();
+				const firstName = (person.firstName || '').toLowerCase();
+				const lastName = (person.lastName || '').toLowerCase();
+
+				// Skip if all names are empty
+				if (!fullName && !firstName && !lastName) return false;
+
+				return (
+					fullName.includes(searchTerm) ||
+					firstName.includes(searchTerm) ||
+					lastName.includes(searchTerm) ||
+					// Fuzzy matching for typos
+					isCloseMatch(fullName, searchTerm) ||
+					isCloseMatch(firstName, searchTerm) ||
+					isCloseMatch(lastName, searchTerm)
+				);
+			})
+			.slice(0, 5); // Limit to 5 suggestions
+
+		nameSuggestions = suggestions;
+		showSuggestions = suggestions.length > 0 && !selectedUser;
+	}
+
+	// Simple fuzzy matching for typos
+	function isCloseMatch(str1, str2) {
+		if (Math.abs(str1.length - str2.length) > 2) return false;
+
+		let differences = 0;
+		const maxLength = Math.max(str1.length, str2.length);
+
+		for (let i = 0; i < maxLength; i++) {
+			if (str1[i] !== str2[i]) differences++;
+			if (differences > 2) return false;
+		}
+
+		return differences <= 2;
+	}
+
+	// Execute search manually
+	function executeUserSearch() {
+		showSuggestions = false;
+		searchUsers();
+	}
+
 	// Select a user and load their events
 	function selectUser(user) {
 		selectedUser = user;
 		userName = `${user.firstName} ${user.lastName}`;
 		showUserDropdown = false;
-		
-		// Create a set of event IDs this user is registered for
-		userEvents = new Set(user.events.map(e => e.eventId));
+		showSuggestions = false;
+
+		// Create a set of event IDs this user is registered for (ensure consistent data types)
+		userEvents = new Set(user.events.map((e) => Number(e.eventId)));
 	}
 
 	// Clear user selection
@@ -81,26 +140,33 @@
 		userEvents = new Set();
 		userSearchResults = [];
 		showUserDropdown = false;
+		nameSuggestions = [];
+		showSuggestions = false;
+	}
+
+	// Select name suggestion
+	function selectSuggestion(suggestion) {
+		userName = suggestion.fullName;
+		showSuggestions = false;
+		executeUserSearch();
 	}
 
 	// Check if user is registered for an event
 	function isUserRegistered(eventId) {
-		return userEvents.has(eventId);
+		const numericEventId = Number(eventId);
+		return userEvents.has(numericEventId);
 	}
 
 	// Get user's status for an event
 	function getUserEventStatus(eventId) {
 		if (!selectedUser) return null;
-		const userEvent = selectedUser.events.find(e => e.eventId === eventId);
+		const numericEventId = Number(eventId);
+		const userEvent = selectedUser.events.find((e) => Number(e.eventId) === numericEventId);
 		return userEvent?.status || null;
 	}
 
 	// Debounce user search
 	let searchTimeout;
-	function handleUserInput() {
-		clearTimeout(searchTimeout);
-		searchTimeout = setTimeout(searchUsers, 300);
-	}
 </script>
 
 <div class="min-h-screen bg-irish-stone-light pb-16">
@@ -110,62 +176,80 @@
 			<h1 class="mb-4 text-4xl font-bold">Events Schedule</h1>
 			<p class="mb-6 text-lg">Discover all the exciting events planned for our Ireland Weekend</p>
 
-			<div class="mx-auto max-w-4xl">
-				<!-- Search and Filter Row -->
-				<div class="flex flex-col gap-4 lg:flex-row lg:items-end">
-					<!-- Event Search and Date Filter -->
-					<div class="flex flex-col gap-3 sm:flex-row lg:flex-1">
-						<input
-							type="text"
-							bind:value={searchTerm}
-							placeholder="Search events..."
-							class="w-full rounded-lg border border-irish-stone px-4 py-2 text-irish-navy focus:outline-none focus:ring-2 focus:ring-irish-green"
-						/>
-
-						<select
-							bind:value={selectedDate}
-							class="rounded-lg border border-irish-stone px-4 py-2 text-irish-navy focus:outline-none focus:ring-2 focus:ring-irish-green"
-						>
-							<option value="">All Dates</option>
-							{#each uniqueDates as date}
-								<option value={date}
-									>{new Date(date).toLocaleDateString('en-US', {
-										weekday: 'long',
-										month: 'long',
-										day: 'numeric'
-									})}</option
-								>
-							{/each}
-						</select>
+			<div class="mx-auto max-w-2xl">
+				<!-- User Search Only -->
+				<div class="text-center">
+					<div class="mb-4">
+						<h3 class="text-xl font-medium text-white">See Your Personalised Agenda</h3>
 					</div>
-
-					<!-- User Filter -->
-					<div class="relative lg:w-80">
+					<div class="relative mx-auto w-full max-w-lg">
 						<div class="flex gap-2">
 							<div class="relative flex-1">
 								<input
 									type="text"
 									bind:value={userName}
-									on:input={handleUserInput}
-									on:focus={() => userName.length >= 2 && searchUsers()}
+									on:input={() => {
+										generateNameSuggestions();
+										clearTimeout(searchTimeout);
+										searchTimeout = setTimeout(searchUsers, 300);
+									}}
+									on:focus={() => {
+										if (userName.length >= 2) {
+											generateNameSuggestions();
+											searchUsers();
+										}
+									}}
+									on:blur={() => {
+										// Hide suggestions after a short delay to allow clicks
+										setTimeout(() => {
+											showSuggestions = false;
+										}, 200);
+									}}
 									placeholder="Enter your name to see your events..."
-									class="w-full rounded-lg border border-irish-stone px-4 py-2 text-irish-navy focus:outline-none focus:ring-2 focus:ring-irish-green"
+									class="w-full rounded-lg border-2 border-white bg-white px-4 py-2 text-gray-900 placeholder-gray-500 focus:border-irish-green focus:ring-2 focus:ring-irish-green focus:outline-none"
 								/>
-								
+
 								{#if userSearchLoading}
-									<div class="absolute right-3 top-1/2 transform -translate-y-1/2">
-										<div class="w-4 h-4 border-2 border-irish-green border-t-transparent rounded-full animate-spin"></div>
+									<div class="absolute top-1/2 right-3 -translate-y-1/2 transform">
+										<div
+											class="h-4 w-4 animate-spin rounded-full border-2 border-irish-green border-t-transparent"
+										></div>
+									</div>
+								{/if}
+
+
+								<!-- Name Suggestions Dropdown -->
+								{#if showSuggestions && nameSuggestions.length > 0}
+									<div
+										class="absolute top-full right-0 left-0 z-50 mt-1 max-h-40 overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-xl"
+									>
+										<div
+											class="border-b border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500"
+										>
+											Did you mean:
+										</div>
+										{#each nameSuggestions as suggestion}
+											<button
+												type="button"
+												on:click={() => selectSuggestion(suggestion)}
+												class="w-full border-b border-gray-100 px-3 py-2 text-left text-sm text-irish-navy transition-colors last:border-b-0 hover:bg-irish-green hover:text-white"
+											>
+												{suggestion.fullName}
+											</button>
+										{/each}
 									</div>
 								{/if}
 
 								<!-- User Search Dropdown -->
 								{#if showUserDropdown && userSearchResults.length > 0}
-									<div class="absolute top-full left-0 right-0 mt-1 bg-white border border-irish-stone rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
+									<div
+										class="absolute top-full right-0 left-0 z-10 mt-1 max-h-60 overflow-y-auto rounded-lg border border-irish-stone bg-white shadow-lg"
+									>
 										{#each userSearchResults as user}
 											<button
 												type="button"
 												on:click={() => selectUser(user)}
-												class="w-full text-left px-4 py-3 hover:bg-irish-stone-light border-b border-irish-stone last:border-b-0 text-irish-navy"
+												class="w-full border-b border-irish-stone px-4 py-3 text-left text-irish-navy last:border-b-0 hover:bg-irish-stone-light"
 											>
 												<div class="font-medium">{user.firstName} {user.lastName}</div>
 												{#if user.email}
@@ -179,12 +263,23 @@
 									</div>
 								{/if}
 							</div>
-							
+
+							<!-- Search Button -->
+							<button
+								type="button"
+								on:click={executeUserSearch}
+								disabled={userName.length < 2}
+								class="rounded-lg bg-irish-green px-4 py-2 font-bold text-white transition-colors hover:bg-irish-green-dark disabled:cursor-not-allowed disabled:bg-gray-400"
+								title="Search for user"
+							>
+								🔍
+							</button>
+
 							{#if selectedUser}
 								<button
 									type="button"
 									on:click={clearUserSelection}
-									class="px-3 py-2 bg-irish-orange hover:bg-irish-orange-dark rounded-lg transition-colors"
+									class="rounded-lg bg-irish-orange px-3 py-2 transition-colors hover:bg-irish-orange-dark"
 									title="Clear user selection"
 								>
 									✕
@@ -194,10 +289,15 @@
 
 						<!-- Selected User Info -->
 						{#if selectedUser}
-							<div class="mt-2 p-3 bg-irish-green bg-opacity-20 rounded-lg text-sm">
-								<div class="font-medium">Viewing events for: {selectedUser.firstName} {selectedUser.lastName}</div>
-								<div class="text-white text-opacity-80">
-									Registered for {selectedUser.events.length} event{selectedUser.events.length === 1 ? '' : 's'}
+							<div class="bg-opacity-20 mt-2 rounded-lg bg-irish-green p-3 text-sm">
+								<div class="font-medium">
+									Viewing events for: {selectedUser.firstName}
+									{selectedUser.lastName}
+								</div>
+								<div class="text-opacity-80 text-white">
+									Registered for {selectedUser.events.length} event{selectedUser.events.length === 1
+										? ''
+										: 's'}
 								</div>
 							</div>
 						{/if}
@@ -217,21 +317,6 @@
 			<div class="rounded-lg bg-white py-8 text-center shadow">
 				<p class="text-irish-navy">No events found.</p>
 			</div>
-		{:else if filteredEvents.length === 0}
-			<div class="rounded-lg bg-white py-8 text-center shadow">
-				<p class="text-irish-navy">No events match your search criteria.</p>
-				<div class="mt-4 flex justify-center gap-3">
-					<button
-						on:click={() => {
-							searchTerm = '';
-							selectedDate = '';
-						}}
-						class="rounded bg-irish-navy px-4 py-2 text-white transition-colors hover:bg-irish-navy-light"
-					>
-						Reset Filters
-					</button>
-				</div>
-			</div>
 		{:else}
 			<!-- Group events by date -->
 			{#each [...new Set(filteredEvents.map((event) => event.date))].sort() as date}
@@ -250,11 +335,11 @@
 							{@const userStatus = getUserEventStatus(event.id)}
 							<div
 								class={`overflow-hidden rounded-lg border shadow-md transition-all hover:shadow-lg ${
-									selectedUser && !isRegistered 
-										? 'border-gray-300 bg-gray-50 opacity-50' 
-										: selectedUser && isRegistered
-										? 'border-irish-green bg-white ring-2 ring-irish-green ring-opacity-30'
-										: 'border-irish-stone bg-white hover:border-irish-green'
+									selectedUser && isRegistered
+										? 'ring-opacity-30 border-irish-green bg-white ring-2 ring-irish-green'
+										: selectedUser && !isRegistered
+											? 'border-gray-300 bg-gray-50 opacity-50'
+											: 'border-irish-stone bg-white hover:border-irish-green'
 								}`}
 							>
 								<!-- User Registration Status Badge -->
@@ -262,12 +347,17 @@
 									<div class="relative">
 										{#if isRegistered}
 											<div class="absolute top-2 right-2 z-10">
-												<span class={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-													userStatus === 'Confirmed' ? 'bg-green-100 text-green-800' :
-													userStatus === 'Maybe' ? 'bg-yellow-100 text-yellow-800' :
-													userStatus === 'Declined' ? 'bg-red-100 text-red-800' :
-													'bg-irish-green text-white'
-												}`}>
+												<span
+													class={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+														userStatus === 'Confirmed'
+															? 'bg-green-100 text-green-800'
+															: userStatus === 'Maybe'
+																? 'bg-yellow-100 text-yellow-800'
+																: userStatus === 'Declined'
+																	? 'bg-red-100 text-red-800'
+																	: 'bg-irish-green text-white'
+													}`}
+												>
 													{#if userStatus === 'Confirmed'}
 														✓ Going
 													{:else if userStatus === 'Maybe'}
@@ -281,7 +371,9 @@
 											</div>
 										{:else}
 											<div class="absolute top-2 right-2 z-10">
-												<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-600">
+												<span
+													class="inline-flex items-center rounded-full bg-gray-200 px-2 py-1 text-xs font-medium text-gray-600"
+												>
 													Not Registered
 												</span>
 											</div>
@@ -290,16 +382,18 @@
 								{/if}
 
 								{#if event.imageUrl}
-									<img 
-										src={event.imageUrl} 
-										alt={event.title} 
+									<img
+										src={event.imageUrl}
+										alt={event.title}
 										class={`h-48 w-full object-cover ${selectedUser && !isRegistered ? 'opacity-60' : ''}`}
 									/>
 								{:else}
 									<div
 										class={`irish-pattern flex h-32 w-full items-center justify-center bg-irish-stone-light ${selectedUser && !isRegistered ? 'opacity-60' : ''}`}
 									>
-										<span class={`text-xl font-bold ${selectedUser && !isRegistered ? 'text-gray-500' : 'text-irish-navy'}`}>
+										<span
+											class={`text-xl font-bold ${selectedUser && !isRegistered ? 'text-gray-500' : 'text-irish-navy'}`}
+										>
 											{event.title}
 										</span>
 									</div>
@@ -307,25 +401,35 @@
 
 								<div class="p-4">
 									<div class="flex items-start justify-between">
-										<h3 class={`text-xl font-bold ${selectedUser && !isRegistered ? 'text-gray-500' : 'text-irish-navy'}`}>
+										<h3
+											class={`text-xl font-bold ${selectedUser && !isRegistered ? 'text-gray-500' : 'text-irish-navy'}`}
+										>
 											{event.title}
 										</h3>
-										<div class={`text-sm ${selectedUser && !isRegistered ? 'text-gray-400' : 'text-gray-500'}`}>
+										<div
+											class={`text-sm ${selectedUser && !isRegistered ? 'text-gray-400' : 'text-gray-500'}`}
+										>
 											{event.startTime} - {event.endTime}
 										</div>
 									</div>
 
-									<p class={`mb-3 mt-1 ${selectedUser && !isRegistered ? 'text-gray-400' : 'text-gray-600'}`}>
+									<p
+										class={`mt-1 mb-3 ${selectedUser && !isRegistered ? 'text-gray-400' : 'text-gray-600'}`}
+									>
 										<span class="font-medium">Location:</span>
 										{event.location || 'TBA'}
 									</p>
 
-									<p class={`mb-4 line-clamp-3 ${selectedUser && !isRegistered ? 'text-gray-400' : 'text-gray-700'}`}>
+									<p
+										class={`mb-4 line-clamp-3 ${selectedUser && !isRegistered ? 'text-gray-400' : 'text-gray-700'}`}
+									>
 										{event.description}
 									</p>
 
 									<div class="flex items-center justify-between">
-										<span class={`text-sm ${selectedUser && !isRegistered ? 'text-gray-400' : 'text-gray-500'}`}>
+										<span
+											class={`text-sm ${selectedUser && !isRegistered ? 'text-gray-400' : 'text-gray-500'}`}
+										>
 											{#if event.maxAttendees}
 												Max Attendees: {event.maxAttendees}
 											{/if}
@@ -334,8 +438,8 @@
 										<a
 											href={`/events/${event.id}`}
 											class={`rounded-lg px-4 py-2 text-white transition-colors ${
-												selectedUser && !isRegistered 
-													? 'bg-gray-400 hover:bg-gray-500' 
+												selectedUser && !isRegistered
+													? 'bg-gray-400 hover:bg-gray-500'
 													: 'bg-irish-green hover:bg-irish-green-dark'
 											}`}
 										>

@@ -15,6 +15,7 @@
 		isConfirmed: false,
 		isAdult: true,
 		accommodationId: null,
+		accommodationLocation: '',
 		arrivalDate: '',
 		departureDate: '',
 		specialRequests: ''
@@ -164,6 +165,17 @@
 							<option value={accommodation.id}>{accommodation.name}</option>
 						{/each}
 					</select>
+				</div>
+
+				<div>
+					<label for="accommodationLocation" class="block text-sm font-medium text-gray-700">Accommodation Location</label>
+					<input
+						type="text"
+						id="accommodationLocation"
+						bind:value={form.accommodationLocation}
+						class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-irish-green focus:outline-none focus:ring-irish-green"
+						placeholder="e.g., Room 101, Building A"
+					/>
 				</div>
 
 				<div>

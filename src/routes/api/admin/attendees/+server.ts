@@ -16,6 +16,7 @@ export async function GET() {
         isConfirmed: attendees.isConfirmed,
         isAdult: attendees.isAdult,
         accommodationId: attendees.accommodationId,
+        accommodationLocation: attendees.accommodationLocation,
         arrivalDate: attendees.arrivalDate,
         departureDate: attendees.departureDate,
         specialRequests: attendees.specialRequests

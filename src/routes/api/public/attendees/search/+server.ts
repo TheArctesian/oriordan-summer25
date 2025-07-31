@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
-import { attendees, eventAttendance, events } from '$lib/server/db/schema';
+import { attendees, eventAttendance, events, accommodations } from '$lib/server/db/schema';
 import { eq, and, like, or, sql } from 'drizzle-orm';
 
 export async function GET({ url }) {
@@ -13,15 +13,22 @@ export async function GET({ url }) {
 
     const searchTerm = name.trim().toLowerCase();
 
-    // Find attendees matching the name (case-insensitive)
+    // Find attendees matching the name (case-insensitive) with accommodation details
     const matchingAttendees = await db
       .select({
         id: attendees.id,
         firstName: attendees.firstName,
         lastName: attendees.lastName,
-        email: attendees.email
+        email: attendees.email,
+        accommodationId: attendees.accommodationId,
+        accommodationLocation: attendees.accommodationLocation,
+        accommodationName: accommodations.name,
+        accommodationAddress: accommodations.address,
+        accommodationCapacity: accommodations.capacity,
+        accommodationNotes: accommodations.notes
       })
       .from(attendees)
+      .leftJoin(accommodations, eq(attendees.accommodationId, accommodations.id))
       .where(
         or(
           sql`LOWER(${attendees.firstName}) LIKE ${`%${searchTerm}%`}`,

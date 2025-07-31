@@ -37,6 +37,7 @@ export async function POST({ request }) {
         isConfirmed: false, // Default to not confirmed
         isAdult: data.isAdult || true,
         accommodationId: data.accommodationId || null,
+        accommodationLocation: data.accommodationLocation || null,
         arrivalDate: data.arrivalDate || null,
         departureDate: data.departureDate || null,
         specialRequests: data.specialRequests || null

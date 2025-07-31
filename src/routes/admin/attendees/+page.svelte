@@ -67,7 +67,7 @@
 	/>
 {:else}
 	<Table
-		headers={['Name', 'Email', 'Country', 'Accommodation', 'Status', 'Actions']}
+		headers={['Name', 'Email', 'Country', 'Accommodation', 'Location', 'Status', 'Actions']}
 		searchable={true}
 		searchPlaceholder="Search attendees..."
 		bind:searchValue={searchTerm}
@@ -80,7 +80,7 @@
 
 		{#if filteredAttendees.length === 0}
 			<tr>
-				<td colspan="6" class="px-4 py-8 text-center">
+				<td colspan="7" class="px-4 py-8 text-center">
 					<EmptyState title="No attendees match your search" actionText="Clear Search">
 						<Button on:click={() => (searchTerm = '')} variant="secondary">Clear Search</Button>
 					</EmptyState>
@@ -93,6 +93,7 @@
 					<td class="px-4 py-3">{attendee.email || '-'}</td>
 					<td class="px-4 py-3">{attendee.countryId || '-'}</td>
 					<td class="px-4 py-3">{getAccommodationName(attendee.accommodationId)}</td>
+					<td class="px-4 py-3">{attendee.accommodationLocation || '-'}</td>
 					<td class="px-4 py-3">
 						<span
 							class={`rounded-full px-2 py-1 text-xs ${attendee.isConfirmed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}

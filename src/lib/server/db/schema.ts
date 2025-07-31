@@ -11,6 +11,7 @@ export const attendees = pgTable('attendees', {
   isConfirmed: boolean('is_confirmed'),
   isAdult: boolean('is_adult'),
   accommodationId: integer('accommodation_id'),
+  accommodationLocation: text('accommodation_location'),
   arrivalDate: date('arrival_date'),
   departureDate: date('departure_date'),
   specialRequests: text('special_requests')

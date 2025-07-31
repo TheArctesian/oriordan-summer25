@@ -18,6 +18,7 @@
 		phone: '',
 		countryId: '',
 		accommodationId: '',
+		accommodationLocation: '',
 		arrivalDate: '',
 		departureDate: '',
 		specialRequests: '',
@@ -280,6 +281,22 @@
 							</select>
 							<p class="text-sm text-gray-600 mt-1">
 								Choose from our partner accommodations or arrange your own
+							</p>
+						</div>
+
+						<div>
+							<label for="accommodationLocation" class="block text-sm font-medium text-irish-navy mb-1">
+								Accommodation Location
+							</label>
+							<input
+								type="text"
+								id="accommodationLocation"
+								bind:value={formData.accommodationLocation}
+								class="w-full rounded-lg border border-irish-stone px-3 py-2 focus:outline-none focus:ring-2 focus:ring-irish-green"
+								placeholder="e.g., Room 101, Building A, or your own accommodation address"
+							/>
+							<p class="text-sm text-gray-600 mt-1">
+								Specify your room/location details or your own accommodation address
 							</p>
 						</div>
 

@@ -130,23 +130,23 @@
 				</div>
 
 				<div>
-					<label for="startTime" class="block text-sm font-medium text-gray-700">Start Time*</label>
+					<label for="startTime" class="block text-sm font-medium text-gray-700">Start Time</label>
 					<input
-						type="time"
+						type="text"
 						id="startTime"
 						bind:value={form.startTime}
-						required
+						placeholder="e.g. 2:00 PM, 14:00"
 						class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-irish-green focus:outline-none focus:ring-irish-green"
 					/>
 				</div>
 
 				<div>
-					<label for="endTime" class="block text-sm font-medium text-gray-700">End Time*</label>
+					<label for="endTime" class="block text-sm font-medium text-gray-700">End Time</label>
 					<input
-						type="time"
+						type="text"
 						id="endTime"
 						bind:value={form.endTime}
-						required
+						placeholder="e.g. 4:00 PM, 16:00"
 						class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-irish-green focus:outline-none focus:ring-irish-green"
 					/>
 				</div>

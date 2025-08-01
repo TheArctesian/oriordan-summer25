@@ -105,21 +105,31 @@ export async function PUT({ request }) {
 
 export async function DELETE({ request }) {
   try {
-    const { id } = await request.json();
+    console.log('🗑️ DELETE endpoint called');
+    const body = await request.json();
+    console.log('🗑️ Request body:', body);
+    
+    const { id } = body;
+    console.log('🗑️ Extracted ID:', id, 'type:', typeof id);
 
     if (!id) {
+      console.log('🗑️ No ID provided');
       return json({ error: 'Event attendance ID is required' }, { status: 400 });
     }
 
+    console.log('🗑️ Attempting to delete record with ID:', id);
     const result = await db.delete(eventAttendance).where(eq(eventAttendance.id, id)).returning();
+    console.log('🗑️ Delete result:', result);
 
     if (result.length === 0) {
+      console.log('🗑️ No record found with ID:', id);
       return json({ error: 'Event attendance record not found' }, { status: 404 });
     }
 
-    return json({ message: 'Event attendance deleted successfully' });
+    console.log('🗑️ Successfully deleted record');
+    return json({ message: 'Event attendance deleted successfully', deletedRecord: result[0] });
   } catch (error) {
-    console.error('Error deleting event attendance:', error);
+    console.error('🗑️ Error deleting event attendance:', error);
     return json({ error: 'Failed to delete event attendance' }, { status: 500 });
   }
 }

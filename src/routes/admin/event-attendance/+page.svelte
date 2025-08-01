@@ -101,32 +101,54 @@
   }
 
   async function removeAttendance(attendanceId) {
+    console.log('🗑️ removeAttendance called with ID:', attendanceId);
+    console.log('🗑️ attendanceId type:', typeof attendanceId);
+    
     if (!confirm('Are you sure you want to remove this attendance record?')) {
+      console.log('🗑️ User cancelled deletion');
       return;
     }
 
     deleting = attendanceId;
+    console.log('🗑️ Starting deletion...');
 
     try {
+      const requestBody = { id: attendanceId };
+      console.log('🗑️ Request body:', requestBody);
+      
       const response = await fetch('/api/admin/event-attendance', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ id: attendanceId })
+        body: JSON.stringify(requestBody)
       });
 
+      console.log('🗑️ Response status:', response.status);
+      console.log('🗑️ Response ok:', response.ok);
+      
       if (!response.ok) {
         const errorData = await response.json();
+        console.log('🗑️ Error response:', errorData);
         throw new Error(errorData.error || 'Failed to remove attendance');
       }
 
-      eventAttendance = eventAttendance.filter(ea => ea.id !== attendanceId);
+      const result = await response.json();
+      console.log('🗑️ Success response:', result);
+      
+      console.log('🗑️ Filtering attendance array. Before:', eventAttendance.length);
+      eventAttendance = eventAttendance.filter(ea => {
+        console.log('🗑️ Comparing ea.id:', ea.id, 'with attendanceId:', attendanceId, 'equal?', ea.id !== attendanceId);
+        return ea.id !== attendanceId;
+      });
+      console.log('🗑️ After filter:', eventAttendance.length);
+      
     } catch (error) {
-      console.error('Error removing attendance:', error);
+      console.error('🗑️ Error removing attendance:', error);
       alert('Failed to remove attendance: ' + error.message);
     } finally {
       deleting = null;
+      console.log('🗑️ Deletion process finished');
     }
   }
 

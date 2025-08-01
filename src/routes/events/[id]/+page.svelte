@@ -42,10 +42,8 @@
     }
   });
 
-  // Group attendees by status
-  $: confirmedAttendees = attendees.filter(a => a.status === 'Confirmed');
-  $: maybeAttendees = attendees.filter(a => a.status === 'Maybe');
-  $: declinedAttendees = attendees.filter(a => a.status === 'Declined');
+  // Show all attendees (no filtering by status)
+  $: allAttendees = attendees;
   
   // Format date
   $: formattedDate = event ? new Date(event.date).toLocaleDateString('en-US', {
@@ -147,7 +145,7 @@
                 <p class="text-gray-700">
                   Maximum attendees: {event.maxAttendees} 
                   <span class="text-sm text-gray-500">
-                    ({confirmedAttendees.length} confirmed so far)
+                    ({allAttendees.length} registered so far)
                   </span>
                 </p>
               </div>
@@ -178,19 +176,19 @@
             
             <div class="mb-4">
               <div class="flex items-center justify-between mb-2">
-                <h3 class="font-medium text-irish-navy">Confirmed</h3>
-                <span class="text-sm bg-green-100 text-green-800 rounded-full px-2 py-0.5">
-                  {confirmedAttendees.length}
+                <h3 class="font-medium text-irish-navy">Attendees</h3>
+                <span class="text-sm bg-irish-green text-white rounded-full px-2 py-0.5">
+                  {allAttendees.length}
                 </span>
               </div>
               
-              {#if confirmedAttendees.length === 0}
-                <p class="text-sm text-gray-500 italic">No confirmed attendees yet</p>
+              {#if allAttendees.length === 0}
+                <p class="text-sm text-gray-500 italic">No attendees registered yet</p>
               {:else}
-                <ul class="space-y-1 max-h-32 overflow-y-auto">
-                  {#each confirmedAttendees as attendee}
+                <ul class="space-y-1 max-h-96 overflow-y-auto">
+                  {#each allAttendees as attendee}
                     <li class="text-sm text-gray-700 flex items-center gap-2">
-                      <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                      <span class="w-2 h-2 bg-irish-green rounded-full"></span>
                       {attendee.firstName} {attendee.lastName}
                       {#if attendee.countryId}
                         <span class="text-xs text-gray-500">({attendee.countryId})</span>
@@ -200,59 +198,6 @@
                 </ul>
               {/if}
             </div>
-            
-            <div class="mb-4">
-              <div class="flex items-center justify-between mb-2">
-                <h3 class="font-medium text-irish-navy">Maybe</h3>
-                <span class="text-sm bg-yellow-100 text-yellow-800 rounded-full px-2 py-0.5">
-                  {maybeAttendees.length}
-                </span>
-              </div>
-              
-              {#if maybeAttendees.length === 0}
-                <p class="text-sm text-gray-500 italic">No one has responded with "maybe" yet</p>
-              {:else}
-                <ul class="space-y-1 max-h-24 overflow-y-auto">
-                  {#each maybeAttendees as attendee}
-                    <li class="text-sm text-gray-700 flex items-center gap-2">
-                      <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                      {attendee.firstName} {attendee.lastName}
-                    </li>
-                  {/each}
-                </ul>
-              {/if}
-            </div>
-            
-            <div>
-              <div class="flex items-center justify-between mb-2">
-                <h3 class="font-medium text-irish-navy">Declined</h3>
-                <span class="text-sm bg-red-100 text-red-800 rounded-full px-2 py-0.5">
-                  {declinedAttendees.length}
-                </span>
-              </div>
-              
-              {#if declinedAttendees.length === 0}
-                <p class="text-sm text-gray-500 italic">No one has declined yet</p>
-              {:else}
-                <ul class="space-y-1 max-h-24 overflow-y-auto">
-                  {#each declinedAttendees as attendee}
-                    <li class="text-sm text-gray-700 flex items-center gap-2">
-                      <span class="w-2 h-2 bg-red-500 rounded-full"></span>
-                      {attendee.firstName} {attendee.lastName}
-                    </li>
-                  {/each}
-                </ul>
-              {/if}
-            </div>
-            
-            {#if attendees.length > 0}
-              <div class="mt-6 pt-4 border-t border-irish-stone">
-                <div class="flex items-center justify-between text-sm text-gray-600">
-                  <span>Total Responses:</span>
-                  <span>{attendees.length}</span>
-                </div>
-              </div>
-            {/if}
             
           </div>
         </div>

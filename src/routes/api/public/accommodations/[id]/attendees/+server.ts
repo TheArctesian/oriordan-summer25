@@ -17,7 +17,7 @@ export async function GET({ params }) {
         id: attendees.id,
         firstName: attendees.firstName,
         lastName: attendees.lastName,
-        countryId: attendees.countryId
+        accommodationLocation: attendees.accommodationLocation
       })
       .from(attendees)
       .where(eq(attendees.accommodationId, accommodationId));

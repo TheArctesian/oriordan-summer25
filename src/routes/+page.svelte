@@ -14,6 +14,7 @@
 	let allAttendeeNames = [];
 	let nameSuggestions = [];
 	let showSuggestions = false;
+	let programmaticNameChange = false;
 
 	onMount(async () => {
 		try {
@@ -135,14 +136,13 @@
 	// Select a user and load their events
 	function selectUser(user) {
 		selectedUser = user;
+		programmaticNameChange = true;
 		userName = `${user.firstName} ${user.lastName}`;
 		showUserDropdown = false;
 		showSuggestions = false;
 
 		// Create a set of event IDs this user is registered for (ensure consistent data types)
-		console.log('User events:', user.events);
-		userEvents = new Set(user.events.map((e) => Number(e.eventId)));
-		console.log('User event IDs:', userEvents);
+		userEvents = new Set(user.events?.map((e) => Number(e.eventId)) || []);
 	}
 
 	// Clear user selection
@@ -158,6 +158,7 @@
 
 	// Select name suggestion
 	function selectSuggestion(suggestion) {
+		programmaticNameChange = true;
 		userName = suggestion.fullName;
 		showSuggestions = false;
 		executeUserSearch();
@@ -165,13 +166,8 @@
 
 	// Check if user is registered for an event
 	function isUserRegistered(eventId) {
-		const numericEventId = Number(eventId);
-		const isRegistered = userEvents.has(numericEventId);
-		console.log(
-			`Event ${eventId} (${typeof eventId}) -> ${numericEventId} (${typeof numericEventId}): registered = ${isRegistered}`,
-			userEvents
-		);
-		return isRegistered;
+		if (!selectedUser || !userEvents.size) return false;
+		return userEvents.has(Number(eventId));
 	}
 
 	// Get user's status for an event
@@ -206,6 +202,12 @@
 									type="text"
 									bind:value={userName}
 									on:input={() => {
+										// Don't clear if this is a programmatic change
+										if (programmaticNameChange) {
+											programmaticNameChange = false;
+											return;
+										}
+										
 										// Clear user selection if text is changed after selection
 										if (selectedUser) {
 											clearUserSelection();
@@ -327,12 +329,12 @@
 						})}
 					</h2>
 
-					<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+					<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 items-stretch">
 						{#each filteredEvents.filter((event) => event.date === date) as event}
 							{@const isRegistered = isUserRegistered(event.id)}
 							{@const userStatus = getUserEventStatus(event.id)}
 							<div
-								class={`overflow-hidden rounded-lg border shadow-md transition-all hover:shadow-lg ${
+								class={`overflow-hidden rounded-lg border shadow-md transition-all hover:shadow-lg flex flex-col ${
 									selectedUser && !isRegistered
 										? 'border-gray-300 bg-gray-50 opacity-50'
 										: selectedUser && isRegistered
@@ -397,45 +399,43 @@
 									</div>
 								{/if}
 
-								<div class="p-4">
-									<div class="flex items-start justify-between">
+								<div class="p-4 flex flex-col flex-1">
+									<div class="flex items-start justify-between mb-2">
 										<h3
-											class={`text-xl font-bold ${selectedUser && !isRegistered ? 'text-gray-500' : 'text-irish-navy'}`}
+											class={`text-xl font-bold line-clamp-2 ${selectedUser && !isRegistered ? 'text-gray-500' : 'text-irish-navy'}`}
 										>
 											{event.title}
 										</h3>
 										<div
-											class={`text-sm ${selectedUser && !isRegistered ? 'text-gray-400' : 'text-gray-500'}`}
+											class={`text-sm ml-2 ${selectedUser && !isRegistered ? 'text-gray-400' : 'text-gray-500'}`}
 										>
 											{event.startTime} - {event.endTime}
 										</div>
 									</div>
 
 									<p
-										class={`mt-1 mb-3 ${selectedUser && !isRegistered ? 'text-gray-400' : 'text-gray-600'}`}
+										class={`mb-3 ${selectedUser && !isRegistered ? 'text-gray-400' : 'text-gray-600'}`}
 									>
 										<span class="font-medium">Location:</span>
-										{event.location || 'TBA'}
+										<span class="line-clamp-1">{event.location || 'TBA'}</span>
 									</p>
 
 									<p
-										class={`mb-4 line-clamp-3 ${selectedUser && !isRegistered ? 'text-gray-400' : 'text-gray-700'}`}
+										class={`mb-4 line-clamp-3 flex-grow ${selectedUser && !isRegistered ? 'text-gray-400' : 'text-gray-700'}`}
 									>
 										{event.description}
 									</p>
 
-									<div class="flex items-center justify-between">
-										<span
-											class={`text-sm ${selectedUser && !isRegistered ? 'text-gray-400' : 'text-gray-500'}`}
-										>
-											{#if event.maxAttendees}
+									<div class="mt-auto">
+										{#if event.maxAttendees}
+											<div class={`text-sm mb-3 ${selectedUser && !isRegistered ? 'text-gray-400' : 'text-gray-500'}`}>
 												Max Attendees: {event.maxAttendees}
-											{/if}
-										</span>
-
+											</div>
+										{/if}
+										
 										<a
 											href={`/events/${event.id}`}
-											class={`rounded-lg px-4 py-2 text-white transition-colors ${
+											class={`block text-center rounded-lg px-4 py-2 text-white transition-colors ${
 												selectedUser && !isRegistered
 													? 'bg-gray-400 hover:bg-gray-500'
 													: 'bg-irish-green hover:bg-irish-green-dark'

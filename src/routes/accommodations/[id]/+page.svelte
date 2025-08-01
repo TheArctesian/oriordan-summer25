@@ -72,14 +72,6 @@
 								View on Map
 							</a>
 						{/if}
-						{#if !isAdminRoute}
-							<a 
-								href="/register" 
-								class="bg-irish-green hover:bg-irish-green-dark text-white px-4 py-2 rounded-lg transition-colors"
-							>
-								Register to Stay
-							</a>
-						{/if}
 					</div>
 				</div>
 			</div>
@@ -160,8 +152,8 @@
 											<p class="font-medium text-irish-navy">
 												{attendee.firstName} {attendee.lastName}
 											</p>
-											{#if attendee.countryId}
-												<p class="text-sm text-gray-600">{attendee.countryId}</p>
+											{#if attendee.accommodationLocation}
+												<p class="text-sm text-gray-600">Room: {attendee.accommodationLocation}</p>
 											{/if}
 										</div>
 									</div>
@@ -182,16 +174,6 @@
 							</div>
 						{/if}
 						
-						{#if !isAdminRoute}
-							<div class="mt-6 pt-4 border-t border-irish-stone">
-								<a 
-									href="/register" 
-									class="bg-irish-orange hover:bg-irish-orange-dark text-white px-4 py-2 rounded-lg transition-colors block text-center"
-								>
-									Register to Stay Here
-								</a>
-							</div>
-						{/if}
 					</div>
 				</div>
 			</div>

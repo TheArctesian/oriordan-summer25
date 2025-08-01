@@ -38,26 +38,33 @@
 
 	// Search for users
 	async function searchUsers() {
+		console.log('🔍 searchUsers called with userName:', userName);
+		
 		if (userName.trim().length < 2) {
+			console.log('🔍 Username too short, clearing results');
 			userSearchResults = [];
 			showUserDropdown = false;
 			return;
 		}
 
 		userSearchLoading = true;
+		console.log('🔍 Starting user search...');
 
 		try {
 			const response = await fetch(
 				`/api/public/attendees/search?name=${encodeURIComponent(userName)}`
 			);
 			const data = await response.json();
+			console.log('🔍 Search API response:', data);
 
 			if (data.attendees) {
 				userSearchResults = data.attendees;
 				showUserDropdown = userSearchResults.length > 0;
+				console.log('🔍 Found', userSearchResults.length, 'users');
+				console.log('🔍 First user events:', userSearchResults[0]?.events);
 			}
 		} catch (error) {
-			console.error('Failed to search users:', error);
+			console.error('🔍 Failed to search users:', error);
 			userSearchResults = [];
 			showUserDropdown = false;
 		} finally {
@@ -135,18 +142,35 @@
 
 	// Select a user and load their events
 	function selectUser(user) {
+		console.log('🔵 selectUser called with:', user);
 		selectedUser = user;
+		console.log('🔵 selectedUser set to:', selectedUser);
+		
 		programmaticNameChange = true;
+		console.log('🔵 programmaticNameChange set to true');
+		
 		userName = `${user.firstName} ${user.lastName}`;
+		console.log('🔵 userName set to:', userName);
+		
 		showUserDropdown = false;
 		showSuggestions = false;
 
 		// Create a set of event IDs this user is registered for (ensure consistent data types)
-		userEvents = new Set(user.events?.map((e) => Number(e.eventId)) || []);
+		const eventIds = user.events?.map((e) => {
+			console.log('🔵 Processing user event:', e);
+			return Number(e.eventId);
+		}) || [];
+		console.log('🔵 Extracted event IDs:', eventIds);
+		
+		userEvents = new Set(eventIds);
+		console.log('🔵 userEvents Set created:', userEvents);
+		console.log('🔵 userEvents size:', userEvents.size);
 	}
 
 	// Clear user selection
 	function clearUserSelection() {
+		console.log('🔴 clearUserSelection called');
+		console.log('🔴 selectedUser before clear:', selectedUser);
 		selectedUser = null;
 		userName = '';
 		userEvents = new Set();
@@ -154,6 +178,7 @@
 		showUserDropdown = false;
 		nameSuggestions = [];
 		showSuggestions = false;
+		console.log('🔴 User selection cleared');
 	}
 
 	// Select name suggestion
@@ -166,16 +191,41 @@
 
 	// Check if user is registered for an event
 	function isUserRegistered(eventId) {
-		if (!selectedUser || !userEvents.size) return false;
-		return userEvents.has(Number(eventId));
+		console.log('🟢 isUserRegistered called for eventId:', eventId);
+		console.log('🟢 selectedUser exists:', !!selectedUser);
+		console.log('🟢 userEvents size:', userEvents.size);
+		console.log('🟢 userEvents contents:', userEvents);
+		
+		if (!selectedUser || !userEvents.size) {
+			console.log('🟢 Returning false - no selectedUser or empty userEvents');
+			return false;
+		}
+		
+		const numericEventId = Number(eventId);
+		const isRegistered = userEvents.has(numericEventId);
+		console.log('🟢 Event', eventId, '-> numeric:', numericEventId, '-> registered:', isRegistered);
+		
+		return isRegistered;
 	}
 
 	// Get user's status for an event
 	function getUserEventStatus(eventId) {
-		if (!selectedUser) return null;
+		console.log('🟣 getUserEventStatus called for eventId:', eventId);
+		console.log('🟣 selectedUser exists:', !!selectedUser);
+		
+		if (!selectedUser) {
+			console.log('🟣 Returning null - no selectedUser');
+			return null;
+		}
+		
 		const numericEventId = Number(eventId);
-		const userEvent = selectedUser.events.find((e) => Number(e.eventId) === numericEventId);
-		return userEvent?.status || null;
+		const userEvent = selectedUser.events?.find((e) => Number(e.eventId) === numericEventId);
+		console.log('🟣 Found userEvent:', userEvent);
+		
+		const status = userEvent?.status || null;
+		console.log('🟣 Returning status:', status);
+		
+		return status;
 	}
 
 	// Debounce user search
@@ -202,14 +252,20 @@
 									type="text"
 									bind:value={userName}
 									on:input={() => {
+										console.log('🟡 Input handler triggered, userName:', userName);
+										console.log('🟡 programmaticNameChange:', programmaticNameChange);
+										console.log('🟡 selectedUser:', selectedUser);
+										
 										// Don't clear if this is a programmatic change
 										if (programmaticNameChange) {
+											console.log('🟡 Skipping clear because programmaticNameChange=true');
 											programmaticNameChange = false;
 											return;
 										}
 										
 										// Clear user selection if text is changed after selection
 										if (selectedUser) {
+											console.log('🟡 Clearing user selection because selectedUser exists');
 											clearUserSelection();
 										}
 										generateNameSuggestions();
@@ -331,8 +387,9 @@
 
 					<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 items-stretch">
 						{#each filteredEvents.filter((event) => event.date === date) as event}
-							{@const isRegistered = isUserRegistered(event.id)}
+							{@const isRegistered = selectedUser && userEvents.has(Number(event.id))}
 							{@const userStatus = getUserEventStatus(event.id)}
+							<!-- Event card debug: {event.id} registered={isRegistered} status={userStatus} -->
 							<div
 								class={`overflow-hidden rounded-lg border shadow-md transition-all hover:shadow-lg flex flex-col ${
 									selectedUser && !isRegistered

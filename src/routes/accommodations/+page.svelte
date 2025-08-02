@@ -32,7 +32,9 @@
 		}
 	});
 
-	$: filteredAccommodations = accommodations;
+	$: filteredAccommodations = accommodations.filter(
+		(accommodation) => accommodation.id !== 6 && accommodation.name !== 'Other Local'
+	);
 
 	// Search for users
 	async function searchUsers() {
